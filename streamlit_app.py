@@ -11,7 +11,7 @@ import streamlit.components.v1 as cp
 
 # TODO Refine Description
 #   Add comments here and there
-#   Forward information from the repo themes
+#   Forward information from the repo themes (EMBED SOURCE OF DATA)
 #   Add copy button next to the theme name for quick npm installation
 # TODO Optimize loading
 #   Add description that the site are paged because of the performance
