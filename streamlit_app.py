@@ -2,6 +2,7 @@
 import json
 import urllib.request
 import streamlit as st
+from st_copy import copy_button
 import math
 import streamlit.components.v1 as cp
 
@@ -12,18 +13,23 @@ import streamlit.components.v1 as cp
 # TODO Refine Description
 #   Add comments here and there
 #   Forward information from the repo themes (EMBED SOURCE OF DATA)
-#   Add copy button next to the theme name for quick npm installation
+#   DONE Add copy button next to the theme name for quick npm installation
+#   DONE Shorten text for link preview 
+#   Make it wide instead of long 
 # TODO Optimize loading
 #   Add description that the site are paged because of the performance
 #   Refactor codes
 # TODO tidy up sidebar
 #   Use mainly st.pagination instead st.number_input alone
+#   Options for view how much items in a page
 # TODO Add filters
 #   for: mode, license, and compatibility
 
 # ======================================================================== #
 # LOADING DATA                                                             #
 # ======================================================================== #
+
+# @note The data were scrapped from https://github.com/saberzero1/quartz-themes, from the `themes.json` file
 
 def themes_forloop(themes_dict, parsed_themes):
         # Loop through every theme item entry inside the JSON
@@ -67,7 +73,8 @@ def load_and_parse_themes():
         st.error(f"Failed to extract JSON properties: {e}")
         return []
 
-# Execute extraction pipeline
+# Execution -------------------------------------------------------------- #
+
 extracted_themes = load_and_parse_themes()
 
 
@@ -77,7 +84,7 @@ extracted_themes = load_and_parse_themes()
 
 
 # 2. Configure Virtualization Limits
-ITEMS_PER_PAGE = 50
+ITEMS_PER_PAGE = 60
 total_pages = math.ceil(len(extracted_themes) / ITEMS_PER_PAGE)
 
 # 3. Structural Header Filter Configuration Interface Panel layout
@@ -126,8 +133,39 @@ st.title("🚀 Mass Scale Theme Previewer (860+ Items Optimized)")
 # GENERATING WIDGET WITH FOR LOOP                                          #
 # ======================================================================== #
 
+def html_format(target_lnk):
+    html_format = f"""
+        <!-- Parent box 4w:3h -->
+        <div style="width: 100%; height: 280px; border-radius: 12px; overflow: hidden; position: relative; background: #111;">
+            
+            <!-- The Iframe is made 133.33% larger, then scaled back down by 0.75 to fill the box edge-to-edge -->
+            <iframe src="{target_lnk}" 
+                    scrolling="no"
+                    style="border: none; 
+                        position: absolute; 
+                        width: 140%; 
+                        height: 140%; 
+                        transform: scale(0.75); 
+                        transform-origin: top left;
+                        ">
+            </iframe>
+            
+            <!-- Interactive glass click shield 
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.01); cursor: pointer;"></div> -->   
+        </div>
+    """
+    return html_format
+
+
+def header_and_copybutton(theme_name):
+    col1, col2 = st.columns([5,1], vertical_alignment="bottom")
+    col1.markdown(f"#### {theme_name}")
+    
+    with col2:
+        copy_button(f"npm i @quartz-themes/{theme_name}")
+
 # 5. Render performance-isolated grid layout structure safely
-N_COLS = 5
+N_COLS = 4
 for row_idx in range(0, len(active_page_chunk), N_COLS):
     chunk = active_page_chunk[row_idx:row_idx + N_COLS]
     cols = st.columns(N_COLS)
@@ -149,35 +187,17 @@ for row_idx in range(0, len(active_page_chunk), N_COLS):
         target_lnk = f"https://quartz-themes.github.io/{theme_name}"
         
         with cols[col_idx]:
-            st.subheader(theme_name.replace("-", " ").title())
+            itemcontainer = st.container(border=True)
+            with itemcontainer:
                 
-            st.iframe(
-                f"""
-                <!-- Parent box stays exactly 100% width and 320px height -->
-                <div style="width: 100%; height: 320px; border-radius: 12px; overflow: hidden; position: relative; background: #111;">
+                header_and_copybutton(theme_name)
                     
-                    <!-- The Iframe is made 133.33% larger, then scaled back down by 0.75 to fill the box edge-to-edge -->
-                    <iframe src="{target_lnk}" 
-                            scrolling="no"
-                            style="border: none; 
-                                position: absolute; 
-                                top: 0; 
-                                left: 0; 
-                                width: 133.33%; 
-                                height: 133.33%; 
-                                transform: scale(0.75); 
-                                transform-origin: top left;
-                                ">
-                    </iframe>
-                    
-                    <!-- Interactive glass click shield 
-                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.01); cursor: pointer;"></div> -->   
-                </div>
-                """,
-                width="content",
-                height="content"
-            )
-            st.write(target_lnk)
+                st.iframe(
+                    html_format(target_lnk),
+                    width="stretch",
+                    height="content"
+                )
+                st.write(f"[link preview]({target_lnk})")
 
-            # Display metadata extracted from JSON schema underneath each layout window
-            st.caption(f"🔧 **Compat:** {compatibility} | 🎨 **Modes:** {modes} | 📜 **License:** {license_type}")
+                # Display metadata extracted from JSON schema underneath each layout window
+                st.caption(f"🔧 **Compat:** {compatibility} | 🎨 **Modes:** {modes} | 📜 **License:** {license_type}")
