@@ -5,6 +5,7 @@ import streamlit as st
 from st_copy import copy_button
 import math
 import streamlit.components.v1 as cp
+import pandas as pd
 
 # ======================================================================== #
 # NOTES                                                                    #
@@ -12,24 +13,89 @@ import streamlit.components.v1 as cp
 
 # TODO Refine Description
 #   Add comments here and there
-#   Forward information from the repo themes (EMBED SOURCE OF DATA)
+#   DONE Forward information from the repo themes (EMBED SOURCE OF DATA)
 #   DONE Add copy button next to the theme name for quick npm installation
 #   DONE Shorten text for link preview 
 #   Make it wide instead of long 
 # TODO Optimize loading
-#   Add description that the site are paged because of the performance
+#   Done Add description that the site are paged because of the performance
 #   Refactor codes
 # TODO tidy up sidebar
 #   Use mainly st.pagination instead st.number_input alone
-#   Options for view how much items in a page
+#   Options for view how much items in a page and how much column (max 5)
 # TODO Add filters
 #   for: mode, license, and compatibility
+
+# ======================================================================== #
+# INITIALIAZTION?                                                          #
+# ======================================================================== #
+
+# Cleaned data with HTML images replaced by their alt text
+glossary = {
+    "Status": [
+        "FULL",
+        "PARTIAL",
+        "COLLECTION",
+        "CHECKING",
+        "BLOCKED",
+        "TODO",
+        "UNSUPPORTED",
+        "BROKEN"
+    ],
+    "Description": [
+        "Fully supported",
+        "Partially supported (see theme page for details)",
+        "This theme contains information for the Style Settings plugin. See the table for the configured sub-themes.",
+        "Testing compatibility",
+        "Waiting for upstream fixes",
+        "Not started",
+        "Won't support",
+        "Broken or removed from Obsidian"
+    ]
+}
+df_glossary = pd.DataFrame(glossary)
+
+def read_markdown_file(file_path):
+    with open(file_path, "r") as file:
+        return file.read()
+
+def html_format(target_lnk):
+    html_format = f"""
+        <!-- Parent box 4w:3h -->
+        <div style="width: 100%; height: 280px; border-radius: 12px; overflow: hidden; position: relative; background: #111;">
+            
+            <!-- The Iframe is made 133.33% larger, then scaled back down by 0.75 to fill the box edge-to-edge -->
+            <iframe src="{target_lnk}" 
+                    scrolling="no"
+                    style="border: none; 
+                        position: absolute; 
+                        width: 140%; 
+                        height: 140%; 
+                        transform: scale(0.75); 
+                        transform-origin: top left;
+                        ">
+            </iframe>
+            
+            <!-- Interactive glass click shield 
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.01); cursor: pointer;"></div> -->   
+        </div>
+    """
+    return html_format
+
+
+def header_and_copybutton(theme_name):
+    col1, col2 = st.columns([5,1], vertical_alignment="bottom")
+    col1.markdown(f"#### {theme_name}")
+    
+    with col2:
+        copy_button(f"npm i @quartz-themes/{theme_name}")
 
 # ======================================================================== #
 # LOADING DATA                                                             #
 # ======================================================================== #
 
-# @note The data were scrapped from https://github.com/saberzero1/quartz-themes, from the `themes.json` file
+# @note The data were scrapped from https://github.com/saberzero1/quartz-themes, from the `themes.json` file at the root repository.
+# the scrapping is done with the urllib library
 
 def themes_forloop(themes_dict, parsed_themes):
         # Loop through every theme item entry inside the JSON
@@ -53,12 +119,10 @@ def themes_forloop(themes_dict, parsed_themes):
     return parsed_themes
 
 @st.cache_data
-def load_and_parse_themes():
-    # Replace with the actual URL pointing to your online JSON file
-    url = "https://raw.githubusercontent.com/saberzero1/quartz-themes/44dd81094c0dd982b67f93d91ef8c80da3f583e6/themes.json"
-    
+def load_and_parse_themes(source_url):
+
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(source_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode('utf-8'))
             
@@ -75,7 +139,10 @@ def load_and_parse_themes():
 
 # Execution -------------------------------------------------------------- #
 
-extracted_themes = load_and_parse_themes()
+# Replace with the actual URL pointing to online JSON file
+source_url = "https://raw.githubusercontent.com/saberzero1/quartz-themes/44dd81094c0dd982b67f93d91ef8c80da3f583e6/themes.json"
+
+extracted_themes = load_and_parse_themes(source_url)
 
 
 # ======================================================================== #
@@ -117,7 +184,7 @@ start_idx = (current_page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
 active_page_chunk = filtered_themes[start_idx:end_idx]
 
-st.write(f"Showing items **{start_idx + 1}** to **{min(end_idx, len(filtered_themes))}** out of **{len(filtered_themes)}** records.")
+
 
 if "unfrozen_cards" not in st.session_state:
     st.session_state.unfrozen_cards = {}
@@ -127,42 +194,17 @@ if "unfrozen_cards" not in st.session_state:
 # ======================================================================== #
 
 st.set_page_config(layout="wide")
-st.title("🚀 Mass Scale Theme Previewer (860+ Items Optimized)")
+st.title("QUARTZ THEME PREVIEWER")
+
+st.expander("About").markdown(read_markdown_file("README.md"), unsafe_allow_html=True)
+st.expander("Glossary").table(df_glossary)
+
+st.write(f"Showing items **{start_idx + 1}** to **{min(end_idx, len(filtered_themes))}** out of **{len(filtered_themes)}** records.")
 
 # ======================================================================== #
 # GENERATING WIDGET WITH FOR LOOP                                          #
 # ======================================================================== #
 
-def html_format(target_lnk):
-    html_format = f"""
-        <!-- Parent box 4w:3h -->
-        <div style="width: 100%; height: 280px; border-radius: 12px; overflow: hidden; position: relative; background: #111;">
-            
-            <!-- The Iframe is made 133.33% larger, then scaled back down by 0.75 to fill the box edge-to-edge -->
-            <iframe src="{target_lnk}" 
-                    scrolling="no"
-                    style="border: none; 
-                        position: absolute; 
-                        width: 140%; 
-                        height: 140%; 
-                        transform: scale(0.75); 
-                        transform-origin: top left;
-                        ">
-            </iframe>
-            
-            <!-- Interactive glass click shield 
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.01); cursor: pointer;"></div> -->   
-        </div>
-    """
-    return html_format
-
-
-def header_and_copybutton(theme_name):
-    col1, col2 = st.columns([5,1], vertical_alignment="bottom")
-    col1.markdown(f"#### {theme_name}")
-    
-    with col2:
-        copy_button(f"npm i @quartz-themes/{theme_name}")
 
 # 5. Render performance-isolated grid layout structure safely
 N_COLS = 4
@@ -187,11 +229,11 @@ for row_idx in range(0, len(active_page_chunk), N_COLS):
         target_lnk = f"https://quartz-themes.github.io/{theme_name}"
         
         with cols[col_idx]:
-            itemcontainer = st.container(border=True)
+            itemcontainer = st.container(border=True, height="stretch")
             with itemcontainer:
                 
                 header_and_copybutton(theme_name)
-                    
+                
                 st.iframe(
                     html_format(target_lnk),
                     width="stretch",
@@ -200,4 +242,4 @@ for row_idx in range(0, len(active_page_chunk), N_COLS):
                 st.write(f"[link preview]({target_lnk})")
 
                 # Display metadata extracted from JSON schema underneath each layout window
-                st.caption(f"🔧 **Compat:** {compatibility} | 🎨 **Modes:** {modes} | 📜 **License:** {license_type}")
+                st.caption(f"🎨 **Modes:** {modes} | 🔧 **Status:** {compatibility} |  📜 **License:** {license_type}")
